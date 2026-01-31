@@ -22,7 +22,6 @@ export default function Dashboard() {
     const data = await res.json();
     const incoming = data.data || [];
 
-    // highlight hanya request BARU + pending
     const newPendingIds = incoming
       .filter((r) => r.status === "pending")
       .map((r) => r._id)
@@ -40,8 +39,6 @@ export default function Dashboard() {
   const fetchQueue = async () => {
     const res = await fetch("http://localhost:3000/api/request/queue");
     const data = await res.json();
-
-    // hanya approved
     setQueue((data.data || []).filter((s) => s.status === "approved"));
   };
 
@@ -64,7 +61,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     startPolling();
-
     const onVisibility = () =>
       document.visibilityState === "visible" ? startPolling() : stopPolling();
 
@@ -86,7 +82,6 @@ export default function Dashboard() {
   };
 
   const playSong = async (song) => {
-    // 🔥 OPTIMISTIC UI
     setNowPlaying(song);
     setQueue((prev) => prev.filter((q) => q._id !== song._id));
 
@@ -99,27 +94,16 @@ export default function Dashboard() {
 
   const stopPlaying = async () => {
     if (!nowPlaying) return;
-
-    // 🔥 update status jadi played
     await updateStatus(nowPlaying._id, "played");
     setNowPlaying(null);
   };
 
-  /* ================= HELPERS ================= */
-  const statusBadge = (status) => {
-    if (status === "approved") return <Badge>Approved</Badge>;
-    if (status === "rejected")
-      return <Badge variant="destructive">Rejected</Badge>;
-    if (status === "played") return <Badge variant="secondary">Played</Badge>;
-    return <Badge variant="outline">Pending</Badge>;
-  };
-
   /* ================= RENDER ================= */
   return (
-    <div className="min-h-screen bg-muted p-6">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="min-h-screen p-6" style={{ backgroundColor: "#C267B4" }}>
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-[#231338]">
         {/* REQUEST */}
-        <Card className="h-[500px] flex flex-col">
+        <Card className="h-[500px] flex flex-col bg-white shadow-xl rounded-2xl">
           <CardHeader>
             <CardTitle>Request Lagu Masuk</CardTitle>
           </CardHeader>
@@ -127,16 +111,15 @@ export default function Dashboard() {
             {requests.map((req) => (
               <div
                 key={req._id}
-                className={`border rounded-lg p-3 ${
-                  highlightIds.includes(req._id)
-                    ? "ring-2 ring-primary animate-pulse"
-                    : ""
+                className={`border rounded-xl p-3 transition ${
+                  highlightIds.includes(req._id) ? "ring-2 ring-[#231338]" : ""
                 }`}
               >
                 <p className="font-medium">{req.title}</p>
-                <p className="text-sm text-muted-foreground">{req.artist}</p>
-                <div className="flex gap-2 text-xs">
-                  {statusBadge(req.status)}
+                <p className="text-sm text-[#231338]/70">{req.artist}</p>
+
+                <div className="flex gap-2 text-xs mt-1">
+                  <Badge>{req.status}</Badge>
                 </div>
 
                 {req.status === "pending" && (
@@ -144,12 +127,14 @@ export default function Dashboard() {
                     <Button
                       size="sm"
                       variant="outline"
+                      className="text-[#231338]"
                       onClick={() => updateStatus(req._id, "rejected")}
                     >
                       Tolak
                     </Button>
                     <Button
                       size="sm"
+                      className="bg-[#231338] text-white hover:bg-[#2f1c4d]"
                       onClick={() => updateStatus(req._id, "approved")}
                     >
                       Setujui
@@ -162,13 +147,13 @@ export default function Dashboard() {
         </Card>
 
         {/* QUEUE */}
-        <Card className="h-[500px] flex flex-col">
+        <Card className="h-[500px] flex flex-col bg-white shadow-xl rounded-2xl">
           <CardHeader>
             <CardTitle>Queue Lagu</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 overflow-y-auto">
             {queue.length === 0 && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#231338]/70">
                 Belum ada lagu di queue
               </p>
             )}
@@ -176,13 +161,17 @@ export default function Dashboard() {
             {[...queue].reverse().map((song) => (
               <div
                 key={song._id}
-                className="flex justify-between border rounded-lg p-3"
+                className="flex justify-between items-center border rounded-xl p-3"
               >
                 <div>
                   <p className="font-medium">{song.title}</p>
-                  <p className="text-sm text-muted-foreground">{song.artist}</p>
+                  <p className="text-sm text-[#231338]/70">{song.artist}</p>
                 </div>
-                <Button size="sm" onClick={() => playSong(song)}>
+                <Button
+                  size="sm"
+                  className="bg-[#231338] text-white hover:bg-[#2f1c4d]"
+                  onClick={() => playSong(song)}
+                >
                   Play
                 </Button>
               </div>
@@ -191,7 +180,7 @@ export default function Dashboard() {
         </Card>
 
         {/* NOW PLAYING */}
-        <Card className="self-start">
+        <Card className="self-start bg-white shadow-xl rounded-2xl">
           <CardHeader>
             <CardTitle>Now Playing</CardTitle>
           </CardHeader>
@@ -199,16 +188,19 @@ export default function Dashboard() {
             {nowPlaying ? (
               <>
                 <p className="font-medium">{nowPlaying.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {nowPlaying.artist}
-                </p>
+                <p className="text-sm text-[#231338]/70">{nowPlaying.artist}</p>
                 <Badge variant="secondary">Sedang diputar</Badge>
-                <Button size="sm" variant="outline" onClick={stopPlaying}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-[#231338]"
+                  onClick={stopPlaying}
+                >
                   Stop
                 </Button>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#231338]/70">
                 Belum ada lagu diputar
               </p>
             )}

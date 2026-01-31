@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 
 export default function RequestPage() {
   const [query, setQuery] = useState("");
@@ -15,35 +14,39 @@ export default function RequestPage() {
 
   /* ================= DEBOUNCE SEARCH ================= */
   useEffect(() => {
-    if (query.length < 2 || selectedSong) {
+    if (query.length < 2) {
       setResults([]);
-      setLoadingSearch(false);
       return;
     }
 
     setLoadingSearch(true);
 
-    const timeout = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `http://localhost:3000/api/search?q=${encodeURIComponent(query)}`,
-        );
-        const data = await res.json();
+    const timeout = setTimeout(() => {
+      const mockResults = [
+        {
+          id: 1,
+          title: "About You",
+          artist: "The 1975",
+          cover:
+            "https://i.scdn.co/image/ab67616d00004851f7c1e7e4b8d3fbd7d4e7c3a1",
+          spotifyUrl: "https://open.spotify.com",
+        },
+        {
+          id: 2,
+          title: "Something About You",
+          artist: "Eyedress",
+          cover:
+            "https://i.scdn.co/image/ab67616d00004851c9f7c9c7f3b2c9f5c7c9f5b2",
+          spotifyUrl: "https://open.spotify.com",
+        },
+      ];
 
-        if (data.success) {
-          setResults(data.data || []);
-        } else {
-          setResults([]);
-        }
-      } catch (error) {
-        setResults([]);
-      } finally {
-        setLoadingSearch(false);
-      }
+      setResults(mockResults);
+      setLoadingSearch(false);
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [query, selectedSong]);
+  }, [query]);
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
@@ -63,10 +66,9 @@ export default function RequestPage() {
         }),
       });
 
-      // reset
       setQuery("");
-      setSelectedSong(null);
       setResults([]);
+      setSelectedSong(null);
       setMessage("Request lagu berhasil dikirim 🎵");
     } catch (error) {
       setMessage("Gagal mengirim request");
@@ -74,95 +76,95 @@ export default function RequestPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Request Lagu</CardTitle>
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: "#C267B4" }}
+    >
+      <Card className="w-full max-w-md bg-white shadow-xl rounded-2xl">
+        {/* HEADER */}
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl font-semibold text-[#231338]">
+            Request Lagu 🎵
+          </CardTitle>
+          <p className="text-sm text-[#231338]/70 mt-1">
+            Cari lagu favoritmu, kami putarkan
+          </p>
         </CardHeader>
 
-        <CardContent className="space-y-4 relative">
-          {/* ================= INPUT ================= */}
-          <div className="relative">
-            <Input
-              placeholder="Cari lagu yang ingin kamu request..."
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setSelectedSong(null);
-                setMessage("");
-              }}
-            />
+        <CardContent className="space-y-4 relative text-[#231338]">
+          {/* INPUT */}
+          <Input
+            placeholder="Ketik judul lagu..."
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelectedSong(null);
+              setMessage("");
+            }}
+            className="focus-visible:ring-2 focus-visible:ring-[#C267B4]"
+          />
 
-            {/* CLEAR BUTTON */}
-            {selectedSong && (
-              <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setSelectedSong(null);
-                  setQuery("");
-                }}
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* ================= DROPDOWN ================= */}
-          {!selectedSong && query.length >= 2 && (
-            <div className="absolute z-10 w-full bg-background border rounded-md shadow max-h-60 overflow-y-auto">
+          {/* DROPDOWN SEARCH */}
+          {query.length >= 2 && results.length > 0 && !selectedSong && (
+            <div className="absolute z-10 w-full bg-white border rounded-xl shadow-lg max-h-60 overflow-y-auto">
               {loadingSearch && (
-                <p className="text-sm text-muted-foreground p-3">
-                  Mencari lagu...
-                </p>
-              )}
-
-              {!loadingSearch && results.length === 0 && (
-                <p className="text-sm text-muted-foreground p-3">
-                  Lagu tidak ditemukan
-                </p>
+                <p className="text-sm text-[#231338]/70 p-3">Mencari lagu...</p>
               )}
 
               {!loadingSearch &&
                 results.map((song) => (
                   <div
                     key={song.id}
-                    className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
+                    className="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-100 transition"
                     onClick={() => {
                       setSelectedSong(song);
-                      setQuery(`${song.title} - ${song.artist}`);
                       setResults([]);
+                      setQuery(song.title);
                     }}
                   >
                     <img
                       src={song.cover}
                       alt={song.title}
-                      className="w-10 h-10 rounded"
+                      className="w-10 h-10 rounded-md object-cover"
                     />
                     <div>
                       <p className="text-sm font-medium">{song.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {song.artist}
-                      </p>
+                      <p className="text-xs text-[#231338]/70">{song.artist}</p>
                     </div>
                   </div>
                 ))}
             </div>
           )}
 
-          {/* ================= SUBMIT ================= */}
+          {/* SELECTED SONG */}
+          {selectedSong && (
+            <div className="border rounded-xl p-3 flex items-center gap-3 bg-gray-50">
+              <img
+                src={selectedSong.cover}
+                alt={selectedSong.title}
+                className="w-12 h-12 rounded-md"
+              />
+              <div>
+                <p className="font-medium">{selectedSong.title}</p>
+                <p className="text-sm text-[#231338]/70">
+                  {selectedSong.artist}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* SUBMIT */}
           <Button
-            className="w-full"
+            className="w-full bg-[#231338] text-white hover:bg-[#2f1c4d] transition"
             disabled={!selectedSong}
             onClick={handleSubmit}
           >
             Kirim Request
           </Button>
 
-          {/* ================= MESSAGE ================= */}
+          {/* MESSAGE */}
           {message && (
-            <p className="text-sm text-center text-muted-foreground">
-              {message}
-            </p>
+            <p className="text-sm text-center text-[#231338]/80">{message}</p>
           )}
         </CardContent>
       </Card>
