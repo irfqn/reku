@@ -1,46 +1,75 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable no-unused-vars */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 export default function RequestPage() {
-  const [title, setTitle] = useState("");
-  const [artist, setArtist] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [selectedSong, setSelectedSong] = useState(null);
   const [message, setMessage] = useState("");
 
-  const handleSubmit = async () => {
-    if (!title || !artist) {
-      setMessage("Judul dan artis wajib diisi");
+  /* ================= DEBOUNCE SEARCH ================= */
+  useEffect(() => {
+    if (query.length < 2 || selectedSong) {
+      setResults([]);
+      setLoadingSearch(false);
       return;
     }
 
-    setLoading(true);
-    setMessage("");
+    setLoadingSearch(true);
+
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:3000/api/search?q=${encodeURIComponent(query)}`,
+        );
+        const data = await res.json();
+
+        if (data.success) {
+          setResults(data.data || []);
+        } else {
+          setResults([]);
+        }
+      } catch (error) {
+        setResults([]);
+      } finally {
+        setLoadingSearch(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [query, selectedSong]);
+
+  /* ================= SUBMIT ================= */
+  const handleSubmit = async () => {
+    if (!selectedSong) {
+      setMessage("Silakan pilih lagu terlebih dahulu");
+      return;
+    }
 
     try {
-      const res = await fetch("http://localhost:3000/api/request", {
+      await fetch("http://localhost:3000/api/request", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ title, artist }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: selectedSong.title,
+          artist: selectedSong.artist,
+          spotifyUrl: selectedSong.spotifyUrl,
+        }),
       });
 
-      const data = await res.json();
-
-      if (data.success) {
-        setMessage("Request lagu berhasil dikirim 🎵");
-        setTitle("");
-        setArtist("");
-      } else {
-        setMessage("Gagal mengirim request");
-      }
+      // reset
+      setQuery("");
+      setSelectedSong(null);
+      setResults([]);
+      setMessage("Request lagu berhasil dikirim 🎵");
     } catch (error) {
-      setMessage("Backend tidak dapat dihubungi");
-    } finally {
-      setLoading(false);
+      setMessage("Gagal mengirim request");
     }
   };
 
@@ -51,23 +80,85 @@ export default function RequestPage() {
           <CardTitle>Request Lagu</CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          <Input
-            placeholder="Judul lagu"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+        <CardContent className="space-y-4 relative">
+          {/* ================= INPUT ================= */}
+          <div className="relative">
+            <Input
+              placeholder="Cari lagu yang ingin kamu request..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelectedSong(null);
+                setMessage("");
+              }}
+            />
 
-          <Input
-            placeholder="Nama artis"
-            value={artist}
-            onChange={(e) => setArtist(e.target.value)}
-          />
+            {/* CLEAR BUTTON */}
+            {selectedSong && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setSelectedSong(null);
+                  setQuery("");
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
 
-          <Button className="w-full" onClick={handleSubmit} disabled={loading}>
-            {loading ? "Mengirim..." : "Kirim Request"}
+          {/* ================= DROPDOWN ================= */}
+          {!selectedSong && query.length >= 2 && (
+            <div className="absolute z-10 w-full bg-background border rounded-md shadow max-h-60 overflow-y-auto">
+              {loadingSearch && (
+                <p className="text-sm text-muted-foreground p-3">
+                  Mencari lagu...
+                </p>
+              )}
+
+              {!loadingSearch && results.length === 0 && (
+                <p className="text-sm text-muted-foreground p-3">
+                  Lagu tidak ditemukan
+                </p>
+              )}
+
+              {!loadingSearch &&
+                results.map((song) => (
+                  <div
+                    key={song.id}
+                    className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
+                    onClick={() => {
+                      setSelectedSong(song);
+                      setQuery(`${song.title} - ${song.artist}`);
+                      setResults([]);
+                    }}
+                  >
+                    <img
+                      src={song.cover}
+                      alt={song.title}
+                      className="w-10 h-10 rounded"
+                    />
+                    <div>
+                      <p className="text-sm font-medium">{song.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {song.artist}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* ================= SUBMIT ================= */}
+          <Button
+            className="w-full"
+            disabled={!selectedSong}
+            onClick={handleSubmit}
+          >
+            Kirim Request
           </Button>
 
+          {/* ================= MESSAGE ================= */}
           {message && (
             <p className="text-sm text-center text-muted-foreground">
               {message}
