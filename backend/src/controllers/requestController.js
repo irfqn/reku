@@ -90,14 +90,14 @@ export const playSong = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // 1️⃣ kalau ada lagu yang sedang playing → jadikan played
-        await Request.updateMany(
+        // 1. stop any currently playing song
+        await SongRequest.updateMany(
             { status: "playing" },
             { status: "played" }
         );
 
-        // 2️⃣ set lagu ini jadi playing
-        const song = await Request.findByIdAndUpdate(
+        // 2. set selected song to playing
+        const song = await SongRequest.findByIdAndUpdate(
             id,
             { status: "playing" },
             { new: true }
@@ -108,6 +108,7 @@ export const playSong = async (req, res) => {
             data: song,
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({
             success: false,
             message: "Gagal memutar lagu",
